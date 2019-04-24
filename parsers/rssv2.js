@@ -3,7 +3,7 @@ var model = require('../model/rss');
 var namespaces = require('./namespaces');
 var itunesParser = require('./itunes');
 
-exports.parse = function(document) {
+exports.parse = function (document) {
   let parsedFeed = Object.assign({}, model.rss);
 
   parsedFeed = mapChannelFields(document, parsedFeed);
@@ -44,7 +44,7 @@ function getChannelTitle(node) {
 function getChannelLinks(node) {
   const links = utils.getChildElements(node, 'link');
 
-  return links.map(function(link) {
+  return links.map(function (link) {
     return {
       url: link.textContent,
       rel: link.getAttribute('rel')
@@ -67,7 +67,7 @@ function getChannelCopyright(node) {
 function getChannelAuthors(node) {
   const authors = utils.getElementTextContentArray(node, 'managingEditor');
 
-  return authors.map(function(author) {
+  return authors.map(function (author) {
     return {
       name: author
     };
@@ -78,6 +78,10 @@ function getChannelLastUpdated(node) {
   return utils.getElementTextContent(node, 'lastBuildDate');
 }
 
+function getMediaKeywords(node) {
+  return utils.getElementTextContent(node, 'media:keywords');
+}
+
 function getChannelLastPublished(node) {
   return utils.getElementTextContent(node, 'pubDate');
 }
@@ -85,7 +89,7 @@ function getChannelLastPublished(node) {
 function getChannelCategories(node) {
   const categories = utils.getElementTextContentArray(node, 'category');
 
-  return categories.map(function(category) {
+  return categories.map(function (category) {
     return {
       name: category
     }
@@ -123,7 +127,7 @@ function getItemTitle(node) {
 function getItemLinks(node) {
   const links = utils.getChildElements(node, 'link');
 
-  return links.map(function(link) {
+  return links.map(function (link) {
     return {
       url: link.textContent,
       rel: link.getAttribute('rel')
@@ -142,7 +146,7 @@ function getItemContent(node) {
 function getItemAuthors(node) {
   const authors = utils.getElementTextContentArray(node, 'author');
 
-  return authors.map(function(author) {
+  return authors.map(function (author) {
     return {
       name: author
     };
@@ -152,7 +156,7 @@ function getItemAuthors(node) {
 function getItemCategories(node) {
   const categories = utils.getElementTextContentArray(node, 'category');
 
-  return categories.map(function(category) {
+  return categories.map(function (category) {
     return {
       name: category
     }
@@ -170,7 +174,7 @@ function getItemPublished(node) {
 function getItemEnclosures(node) {
   const enclosures = utils.getChildElements(node, 'enclosure');
 
-  return enclosures.map(function(enclosure) {
+  return enclosures.map(function (enclosure) {
     return {
       url: enclosure.getAttribute('url'),
       length: enclosure.getAttribute('length'),
@@ -182,7 +186,7 @@ function getItemEnclosures(node) {
 function mapItems(document) {
   const itemNodes = utils.getElements(document, 'item');
 
-  return itemNodes.map(function(item) {
+  return itemNodes.map(function (item) {
     return {
       title: getItemTitle(item),
       links: getItemLinks(item),
@@ -193,7 +197,36 @@ function mapItems(document) {
       categories: getItemCategories(item),
       published: getItemPublished(item),
       enclosures: getItemEnclosures(item),
-      itunes: itunesParser.parseItem(item)
+      itunes: itunesParser.parseItem(item),
+      'media:keywords': getMediaKeywords(item),
+      'media:group': getMediaGroup(item),
     };
   });
+}
+function getMediaContent(node) {
+  return {
+    url: node.getAttribute('url'),
+    type: node.getAttribute('type'),
+    expression: node.getAttribute('expression'),
+    filesize: node.getAttribute('filesize'),
+    duration: node.getAttribute('duration'),
+    medium: node.getAttribute('medium'),
+    bitrate: node.getAttribute('bitrate'),
+    samplingrate: node.getAttribute('samplingrate'),
+    channels: node.getAttribute('channels'),
+    height: node.getAttribute('height'),
+    width: node.getAttribute('width'),
+  }
+}
+
+function getMediaGroup(node) {
+  const mediaGroupNodes = utils.getChildElements(node, 'media:group');
+  if (mediaGroupNodes.length == 0) return
+  mediaGroupNode = mediaGroupNodes[0]
+  const mediaContentNodes = utils.getChildElements(mediaGroupNode, 'media:content');
+  return {
+    'media:content': mediaContentNodes.map(function (mediaContentNode) {
+      return getMediaContent(mediaContentNode)
+    })
+  }
 }
